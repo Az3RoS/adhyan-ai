@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Adhyan",
+    "slug": "adhyan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "adhyan",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#f6f1e8",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f6f1e8"
+      },
+      "package": "com.adhyan.app",
+      "versionCode": 1,
+      "minSdkVersion": 26,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#c8390a"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Adhyan uses your district and state to show you local mandi prices, weather, and scam alerts. Your exact GPS location is never stored."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
