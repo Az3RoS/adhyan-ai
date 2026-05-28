@@ -4,10 +4,10 @@
  * Offline: falls back to mock feed; cached feed served when network unavailable.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Dimensions, SafeAreaView, ScrollView,
+  Dimensions, SafeAreaView, ScrollView, Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLocale, useUser } from '@/lib/UserContext';
@@ -76,8 +76,8 @@ const MOCK_FEED: DisplayCard[] = [
     badge: 'Scam Alert',
     headline: 'Voice Cloning Scam',
     body: 'A Pune woman nearly sent ₹15,000 after hearing a voice that sounded exactly like her son — made entirely by AI. Here are the three signs.',
-    cta: 'Learn more',
-    ctaRoute: undefined,
+    cta: 'Check a message',
+    ctaRoute: '/scam-check',
     source: 'Cyber Dost · Ministry of Home Affairs',
     color: colors.protect,
     accentGlyph: '🛡️',
@@ -174,8 +174,11 @@ const campfire = StyleSheet.create({
 function FeedCard({ card }: { card: DisplayCard }) {
   const handleCta = () => {
     if (!card.ctaRoute) return;
-    // External URL (good_read / scam source) — router won't handle http
-    if (card.ctaRoute.startsWith('http')) return; // TODO: Linking.openURL
+    // External URLs (good reads, source links)
+    if (card.ctaRoute.startsWith('http')) {
+      Linking.openURL(card.ctaRoute).catch(console.warn);
+      return;
+    }
     router.push(card.ctaRoute as never);
   };
 

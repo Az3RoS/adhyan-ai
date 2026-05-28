@@ -83,6 +83,7 @@ export default function RootLayout() {
             <Stack.Screen name="(onboarding)" options={{ animation: 'fade' }} />
             <Stack.Screen name="(tabs)"       options={{ animation: 'fade' }} />
             <Stack.Screen name="concept/[id]" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="scam-check"   options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
             <Stack.Screen name="+not-found"   />
           </Stack>
         </UserProvider>
