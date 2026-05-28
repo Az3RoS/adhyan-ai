@@ -9,10 +9,7 @@ import {
   TiroDevanagariSanskrit_400Regular,
   TiroDevanagariSanskrit_400Regular_Italic,
 } from '@expo-google-fonts/tiro-devanagari-sanskrit';
-// NOTE: AnandaNepTouch2 for the app wordmark loads as a local asset.
-// Download AnandaNepTouch2.ttf → assets/fonts/AnandaNepTouch2.ttf
-// Needs commercial license before production launch.
-// Then uncomment: AnandaNepTouch2: require('../assets/fonts/AnandaNepTouch2.ttf')
+// Wordmark uses TiroDevanagariSanskrit_400Regular (OFL — free for commercial use).
 import {
   Hind_300Light,
   Hind_400Regular,
@@ -54,7 +51,6 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     TiroDevanagariSanskrit_400Regular,
     TiroDevanagariSanskrit_400Regular_Italic,
-    // AnandaNepTouch2: require('../assets/fonts/AnandaNepTouch2.ttf'),
     Hind_300Light,
     Hind_400Regular,
     Hind_500Medium,

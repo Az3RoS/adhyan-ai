@@ -84,10 +84,8 @@ export const fonts = {
   displayItalic:  'TiroDevanagariSanskrit_400Regular_Italic',
   displayMedium:  'TiroDevanagariSanskrit_400Regular',  // same weight; size differs
   displayRegular: 'TiroDevanagariSanskrit_400Regular',
-  // Wordmark — Ananda NepTouch 2 (bundle AnandaNepTouch2.ttf in assets/fonts/)
-  // Falls back to display until TTF is present
-  wordmark:       'AnandaNepTouch2',
-  wordmarkFallback: 'TiroDevanagariSanskrit_400Regular',
+  // Wordmark — same as display (Tiro, OFL licensed, no commercial restriction)
+  wordmark:       'TiroDevanagariSanskrit_400Regular',
   // Body / UI — Hind
   body:           'Hind_400Regular',
   bodyMedium:     'Hind_500Medium',

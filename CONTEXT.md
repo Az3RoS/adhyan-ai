@@ -42,7 +42,7 @@ lib/
 |---|---|---|
 | `fonts.display` | TiroDevanagariSanskrit_400Regular | All headlines, concept titles, screen headers |
 | `fonts.displayItalic` | TiroDevanagariSanskrit_400Regular_Italic | Pull quotes |
-| `fonts.wordmark` | AnandaNepTouch2 ⚠️ | "Adhyan" title on splash/language screen ONLY |
+| `fonts.wordmark` | TiroDevanagariSanskrit_400Regular | "Adhyan" title on splash/language screen |
 | `fonts.body` | Hind_400Regular | All body text |
 | `fonts.bodySemiBold` | Hind_600SemiBold | Labels, CTAs, nav |
 | `fonts.hindi` | NotoSansDevanagari_400Regular | Hindi body |
@@ -51,7 +51,7 @@ lib/
 
 **Why Tiro:** Commissioned by Harvard UP for Murty Classical Library of India. Built for Sanskrit classical texts. Single 400 weight — size + spacing create hierarchy, not weight. Exact "modern yet ancient" quality requested.
 
-**Why Ananda NepTouch 2 for wordmark:** Latin letters drawn with Devanagari stroke aesthetics. Unique brand identity for the "Adhyan" title. Not in production yet.
+**All fonts are SIL Open Font License** — free for commercial use, no restrictions.
 
 ---
 
@@ -64,7 +64,7 @@ lib/
 | 2026-05-28 | No icon library (View primitives) | Smaller APK, no font dependency |
 | 2026-05-28 | Mock data for feed + concepts | Content goes in Supabase Phase 1 |
 | 2026-05-28 | Tiro Devanagari Sanskrit → replace Eczar | More authentic; classical Indian editorial authority |
-| 2026-05-28 | Ananda NepTouch 2 for wordmark | Devanagari-stroke Latin; distinctive app identity |
+| 2026-05-28 | Wordmark = Tiro (not Ananda NepTouch 2) | Only free/OFL fonts; Tiro is consistent and sufficient |
 
 ---
 
@@ -73,8 +73,6 @@ lib/
 | Blocker | Owner | Needed for |
 |---|---|---|
 | Supabase project creation (Mumbai ap-south-1) | Arnab | Phase 1 start |
-| AnandaNepTouch2.ttf commercial license | Arnab | Wordmark in production |
-| AnandaNepTouch2.ttf file → `assets/fonts/` | Arnab | Wordmark rendering in dev |
 | EAS project ID in app.json (placeholder now) | Arnab | Phase 3 builds |
 | Bhashini API key | Arnab | TTS audio in concept cards |
 
