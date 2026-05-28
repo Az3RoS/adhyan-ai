@@ -1,64 +1,75 @@
 /**
  * Learn — Concept Journey
- * 10 concepts across 4 pillars. Progress rings. Locked/unlocked states.
- * Offline: shows local progress. Online: syncs with Supabase.
+ * 10 concepts across 4 pillars. Progress bars. Unlock chain via prerequisite_ids.
+ * Data: SQLite local_concepts + user_progress (synced from Supabase).
+ * Offline: shows last-synced data; full fallback to hardcoded seed if empty.
  */
 
 import { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList,
-  TouchableOpacity, SafeAreaView, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity,
+  SafeAreaView, ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLocale, useUser } from '@/lib/UserContext';
+import {
+  getAllLocalConcepts, getAllProgress,
+  type LocalConcept, type ConceptProgress,
+} from '@/lib/db';
 import { strings } from '@/constants/i18n';
 import {
   colors, fonts, spacing, radius, shadows,
   pillarColors, type Pillar,
 } from '@/constants/design';
 
-// ── Types ──
+// ── Pillar helpers ──────────────────────────────────────────────────────────
 
-interface ConceptMeta {
-  id: string;
-  number: number;
-  title: string;
-  titleHi: string;
-  pillar: Pillar;
-  daysTotal: number;
-  locked: boolean;
-}
-
-// ── Concept catalogue (content in Supabase Phase 2 — hardcoded for Phase 0) ──
-
-const CONCEPTS: ConceptMeta[] = [
-  { id: 'c01', number: 1,  title: 'What AI Is',          titleHi: 'AI क्या है',          pillar: 'understand', daysTotal: 5, locked: false },
-  { id: 'c02', number: 2,  title: 'AI Is Not Magic',     titleHi: 'AI जादू नहीं है',      pillar: 'understand', daysTotal: 5, locked: false },
-  { id: 'c03', number: 3,  title: 'Pattern Matching',    titleHi: 'पैटर्न मैचिंग',       pillar: 'understand', daysTotal: 5, locked: true  },
-  { id: 'c04', number: 4,  title: 'AI Makes Mistakes',   titleHi: 'AI गलतियाँ करता है',  pillar: 'evaluate',   daysTotal: 5, locked: true  },
-  { id: 'c05', number: 5,  title: 'Voice & Image Fakes', titleHi: 'नकली आवाज़ और फोटो',  pillar: 'protect',    daysTotal: 5, locked: true  },
-  { id: 'c06', number: 6,  title: 'Job Scam Signs',      titleHi: 'नौकरी घोटाले',        pillar: 'protect',    daysTotal: 5, locked: true  },
-  { id: 'c07', number: 7,  title: 'Asking Better',       titleHi: 'बेहतर सवाल पूछना',   pillar: 'use',        daysTotal: 5, locked: true  },
-  { id: 'c08', number: 8,  title: 'AI for Your Work',    titleHi: 'आपके काम के लिए AI',  pillar: 'use',        daysTotal: 5, locked: true  },
-  { id: 'c09', number: 9,  title: 'Checking AI Output',  titleHi: 'AI जवाब जाँचना',     pillar: 'evaluate',   daysTotal: 5, locked: true  },
-  { id: 'c10', number: 10, title: 'Scam Literacy',       titleHi: 'घोटाला साक्षरता',    pillar: 'protect',    daysTotal: 5, locked: true  },
-];
-
-const PILLAR_LABELS: Record<Pillar, string> = {
+const PILLAR_LABELS: Record<string, string> = {
   protect:    'Protect',
   understand: 'Understand',
   use:        'Use',
   evaluate:   'Evaluate',
 };
 
-// ── Pillar filter chips ──
+const ALL_PILLARS = ['protect', 'understand', 'use', 'evaluate'] as const;
 
-const ALL_PILLARS: Pillar[] = ['protect', 'understand', 'use', 'evaluate'];
+// ── Hardcoded fallback (shown when SQLite has no concepts yet) ───────────────
+
+interface FallbackConcept {
+  id: string; number: number; title: string; pillar: Pillar;
+  prerequisite_ids: string[];
+}
+
+const FALLBACK_CONCEPTS: FallbackConcept[] = [
+  { id: 'c01', number: 1,  title: 'What AI Is',          pillar: 'understand', prerequisite_ids: [] },
+  { id: 'c02', number: 2,  title: 'AI Makes Mistakes',   pillar: 'understand', prerequisite_ids: ['c01'] },
+  { id: 'c03', number: 3,  title: 'Pattern Matching',    pillar: 'understand', prerequisite_ids: ['c01'] },
+  { id: 'c04', number: 4,  title: 'Checking AI Output',  pillar: 'evaluate',   prerequisite_ids: ['c02'] },
+  { id: 'c05', number: 5,  title: 'Voice & Image Fakes', pillar: 'protect',    prerequisite_ids: ['c01'] },
+  { id: 'c06', number: 6,  title: 'Job Scam Signs',      pillar: 'protect',    prerequisite_ids: ['c05'] },
+  { id: 'c07', number: 7,  title: 'Asking AI Better',    pillar: 'use',        prerequisite_ids: ['c01'] },
+  { id: 'c08', number: 8,  title: 'AI for Your Work',    pillar: 'use',        prerequisite_ids: ['c07'] },
+  { id: 'c09', number: 9,  title: 'When Not to Trust AI',pillar: 'evaluate',   prerequisite_ids: ['c04','c08'] },
+  { id: 'c10', number: 10, title: 'Scam Literacy',       pillar: 'protect',    prerequisite_ids: ['c05','c06','c09'] },
+];
+
+// ── Unlock logic ─────────────────────────────────────────────────────────────
+
+function isUnlocked(
+  conceptId: string,
+  prerequisiteIds: string[],
+  progressMap: Map<string, ConceptProgress>
+): boolean {
+  if (prerequisiteIds.length === 0) return true;
+  return prerequisiteIds.every(pid => progressMap.get(pid)?.status === 'mastered');
+}
+
+// ── Pillar filter chips ──────────────────────────────────────────────────────
 
 function PillarChip({
   pillar, active, onPress,
-}: { pillar: Pillar; active: boolean; onPress: () => void }) {
-  const pc = pillarColors[pillar];
+}: { pillar: string; active: boolean; onPress: () => void }) {
+  const pc = pillarColors[pillar as Pillar];
   return (
     <TouchableOpacity
       style={[
@@ -81,65 +92,75 @@ function PillarChip({
 
 const chip = StyleSheet.create({
   base: {
-    paddingVertical: 6,
-    paddingHorizontal: spacing[3] + 2,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
+    paddingVertical: 6, paddingHorizontal: spacing[3] + 2,
+    borderRadius: radius.full, borderWidth: 1.5,
   },
-  label: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12,
-    letterSpacing: 0.3,
-  },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 12, letterSpacing: 0.3 },
 });
 
-// ── Concept card ──
+// ── Concept card ─────────────────────────────────────────────────────────────
 
-function ConceptCard({ meta, daysDone }: { meta: ConceptMeta; daysDone: number }) {
+function ConceptCard({
+  id, number, title, pillar, locked, currentDay, isMastered,
+}: {
+  id: string; number: number; title: string; pillar: string;
+  locked: boolean; currentDay: number; isMastered: boolean;
+}) {
   const router = useRouter();
-  const pc = pillarColors[meta.pillar];
-  const pct = meta.daysTotal > 0 ? daysDone / meta.daysTotal : 0;
+  const pc = pillarColors[pillar as Pillar] ?? pillarColors.understand;
+  const pct = Math.min(currentDay / 5, 1);
+  const statusLabel = isMastered ? 'Mastered' : currentDay > 0 ? `Day ${currentDay} of 5` : 'Not started';
 
   return (
     <TouchableOpacity
-      style={[card.wrap, meta.locked && card.locked]}
-      activeOpacity={meta.locked ? 1 : 0.8}
-      onPress={() => !meta.locked && router.push(`/concept/${meta.id}`)}
+      style={[card.wrap, locked && card.wrapLocked]}
+      activeOpacity={locked ? 1 : 0.8}
+      onPress={() => !locked && router.push(`/concept/${id}`)}
       accessibilityRole="button"
-      accessibilityState={{ disabled: meta.locked }}
+      accessibilityState={{ disabled: locked }}
     >
-      {/* Left: number + pillar accent */}
+      {/* Number badge */}
       <View style={[card.numWrap, { backgroundColor: pc.light }]}>
-        <Text style={[card.num, { color: pc.main }]}>{meta.number}</Text>
+        <Text style={[card.num, { color: pc.main }]}>{number}</Text>
+        {isMastered && <View style={[card.masteredDot, { backgroundColor: pc.main }]} />}
       </View>
 
-      {/* Middle: title + progress bar */}
+      {/* Title + progress */}
       <View style={card.mid}>
-        <View style={card.titleRow}>
-          <View style={[card.pillarDot, { backgroundColor: pc.main }]} />
-          <Text style={card.pillarLabel}>{PILLAR_LABELS[meta.pillar]}</Text>
+        <View style={card.labelRow}>
+          <View style={[card.pillarDot, { backgroundColor: locked ? colors.muted : pc.main }]} />
+          <Text style={[card.pillarLabel, locked && { color: colors.muted }]}>
+            {PILLAR_LABELS[pillar] ?? pillar}
+          </Text>
         </View>
-        <Text style={[card.title, meta.locked && card.titleLocked]} numberOfLines={1}>
-          {meta.title}
+        <Text
+          style={[card.title, locked && card.titleLocked]}
+          numberOfLines={1}
+        >
+          {title}
         </Text>
-        {!meta.locked && (
-          <View style={card.progressWrap}>
-            <View style={[card.progressFill, { width: `${pct * 100}%` as any, backgroundColor: pc.main }]} />
+        {locked ? (
+          <Text style={card.lockHint}>Unlock by completing prerequisites</Text>
+        ) : (
+          <View style={card.progressTrack}>
+            <View style={[card.progressFill, {
+              width: `${pct * 100}%` as unknown as number,
+              backgroundColor: pc.main,
+            }]} />
           </View>
         )}
-        {meta.locked && (
-          <Text style={card.lockLabel}>Complete previous concept to unlock</Text>
-        )}
       </View>
 
-      {/* Right: day count or lock */}
+      {/* Right side */}
       <View style={card.right}>
-        {meta.locked ? (
-          <Text style={card.lockIcon}>◌</Text>
+        {locked ? (
+          <Text style={card.lockGlyph}>◌</Text>
+        ) : isMastered ? (
+          <Text style={[card.masteredLabel, { color: pc.main }]}>✓</Text>
         ) : (
           <>
-            <Text style={[card.dayCount, { color: pc.main }]}>{daysDone}</Text>
-            <Text style={card.dayTotal}>/ {meta.daysTotal}</Text>
+            <Text style={[card.dayNum, { color: pc.main }]}>{currentDay}</Text>
+            <Text style={card.dayDenom}>/5</Text>
           </>
         )}
       </View>
@@ -149,109 +170,113 @@ function ConceptCard({ meta, daysDone }: { meta: ConceptMeta; daysDone: number }
 
 const card = StyleSheet.create({
   wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
+    flexDirection: 'row', alignItems: 'center', gap: spacing[3],
     backgroundColor: colors.paper,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
+    borderRadius: radius.lg, borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.85)',
-    padding: spacing[3],
-    marginBottom: spacing[3],
+    padding: spacing[3], marginBottom: spacing[3],
     ...shadows.claySubtle,
   },
-  locked: { opacity: 0.55 },
+  wrapLocked:   { opacity: 0.52 },
   numWrap: {
-    width: 44, height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, position: 'relative',
   },
-  num: {
-    fontFamily: fonts.display,
-    fontSize: 20,
-    lineHeight: 24,
+  masteredDot: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 10, height: 10, borderRadius: 5,
+    borderWidth: 2, borderColor: colors.bg,
   },
+  num: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24 },
   mid: { flex: 1 },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 2,
+  labelRow: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: 5, marginBottom: 2,
   },
-  pillarDot: {
-    width: 5, height: 5, borderRadius: 3,
-  },
+  pillarDot:  { width: 5, height: 5, borderRadius: 3 },
   pillarLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 9,
-    color: colors.muted,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: fonts.bodySemiBold, fontSize: 9,
+    color: colors.muted, letterSpacing: 1, textTransform: 'uppercase',
   },
   title: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 15,
-    color: colors.ink,
-    lineHeight: 20,
-    marginBottom: 6,
+    fontFamily: fonts.bodyMedium, fontSize: 15,
+    color: colors.ink, lineHeight: 20, marginBottom: 6,
   },
   titleLocked: { color: colors.muted },
-  progressWrap: {
-    height: 3,
-    backgroundColor: colors.rule2,
-    borderRadius: 2,
-    overflow: 'hidden',
+  lockHint: {
+    fontFamily: fonts.body, fontSize: 10,
+    color: colors.muted, lineHeight: 14,
   },
-  progressFill: {
-    height: 3,
-    borderRadius: 2,
+  progressTrack: {
+    height: 3, backgroundColor: colors.rule2,
+    borderRadius: 2, overflow: 'hidden',
   },
-  lockLabel: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.muted,
-    lineHeight: 14,
+  progressFill: { height: 3, borderRadius: 2 },
+  right: { alignItems: 'center', flexShrink: 0, minWidth: 30 },
+  lockGlyph:    { fontSize: 18, color: colors.rule2 },
+  masteredLabel: { fontSize: 22, lineHeight: 26 },
+  dayNum:  { fontFamily: fonts.display, fontSize: 18, lineHeight: 22 },
+  dayDenom:{ fontFamily: fonts.body, fontSize: 10, color: colors.muted },
+});
+
+// ── Progress summary row ──────────────────────────────────────────────────────
+
+function PillarSummary({
+  pillar, masteredCount, totalCount,
+}: { pillar: string; masteredCount: number; totalCount: number }) {
+  const pc = pillarColors[pillar as Pillar] ?? pillarColors.understand;
+  return (
+    <View style={[summary.pill, { backgroundColor: pc.light }]}>
+      <Text style={[summary.num, { color: pc.main }]}>{masteredCount}/{totalCount}</Text>
+      <Text style={[summary.label, { color: pc.main }]}>{PILLAR_LABELS[pillar]}</Text>
+    </View>
+  );
+}
+
+const summary = StyleSheet.create({
+  pill: {
+    flex: 1, borderRadius: radius.md,
+    paddingVertical: spacing[2] + 2, alignItems: 'center',
   },
-  right: {
-    alignItems: 'center',
-    flexShrink: 0,
-    minWidth: 28,
-  },
-  dayCount: {
-    fontFamily: fonts.display,
-    fontSize: 18,
-    lineHeight: 22,
-  },
-  dayTotal: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.muted,
-  },
-  lockIcon: {
-    fontSize: 18,
-    color: colors.rule2,
+  num: { fontFamily: fonts.display, fontSize: 16, lineHeight: 20 },
+  label: {
+    fontFamily: fonts.bodySemiBold, fontSize: 8,
+    letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 1,
   },
 });
 
-// ── Main screen ──
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function LearnScreen() {
   const locale = useLocale();
   const { profile } = useUser();
   const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
 
-  const [activePillar, setActivePillar] = useState<Pillar | null>(null);
+  const [activePillar, setActivePillar] = useState<string | null>(null);
+
+  // Load from SQLite — returns empty array pre-sync
+  const localConcepts: LocalConcept[] = getAllLocalConcepts();
+  const allProgress: ConceptProgress[] = getAllProgress();
+
+  const progressMap = new Map<string, ConceptProgress>(
+    allProgress.map(p => [p.concept_id, p])
+  );
+
+  // Use SQLite data if available, otherwise fall back to hardcoded
+  const sourceConcepts: FallbackConcept[] = localConcepts.length > 0
+    ? localConcepts.map(c => ({
+        id: c.id,
+        number: c.concept_number,
+        title: c.canonical_title,
+        pillar: c.pillar as Pillar,
+        prerequisite_ids: c.prerequisite_ids,
+      }))
+    : FALLBACK_CONCEPTS;
 
   const displayed = activePillar
-    ? CONCEPTS.filter(c => c.pillar === activePillar)
-    : CONCEPTS;
-
-  // Mock progress — replaced by SQLite query in Phase 1
-  const mockDaysDone: Record<string, number> = {
-    c01: 3, c02: 1,
-  };
+    ? sourceConcepts.filter(c => c.pillar === activePillar)
+    : sourceConcepts;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -260,25 +285,30 @@ export default function LearnScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{t.nav.learn}</Text>
-          <Text style={styles.sub}>10 concepts · 50 micro-lessons</Text>
+          <Text style={styles.sub}>
+            {sourceConcepts.length} concepts · {sourceConcepts.length * 5} micro-lessons
+          </Text>
         </View>
 
-        {/* Progress summary */}
+        {/* Pillar progress summary */}
         <View style={styles.summaryRow}>
           {ALL_PILLARS.map(p => {
-            const pc = pillarColors[p];
-            const done = CONCEPTS.filter(c => c.pillar === p && !c.locked).length;
-            const total = CONCEPTS.filter(c => c.pillar === p).length;
+            const inPillar = sourceConcepts.filter(c => c.pillar === p);
+            const mastered = inPillar.filter(c =>
+              progressMap.get(c.id)?.status === 'mastered'
+            ).length;
             return (
-              <View key={p} style={[styles.summaryPill, { backgroundColor: pc.light }]}>
-                <Text style={[styles.summaryNum, { color: pc.main }]}>{done}/{total}</Text>
-                <Text style={[styles.summaryLabel, { color: pc.main }]}>{PILLAR_LABELS[p]}</Text>
-              </View>
+              <PillarSummary
+                key={p}
+                pillar={p}
+                masteredCount={mastered}
+                totalCount={inPillar.length}
+              />
             );
           })}
         </View>
 
-        {/* Pillar filter */}
+        {/* Pillar filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -297,13 +327,25 @@ export default function LearnScreen() {
 
         {/* Concept list */}
         <View style={styles.list}>
-          {displayed.map(meta => (
-            <ConceptCard
-              key={meta.id}
-              meta={meta}
-              daysDone={mockDaysDone[meta.id] ?? 0}
-            />
-          ))}
+          {displayed.map(concept => {
+            const progress = progressMap.get(concept.id);
+            const locked   = !isUnlocked(concept.id, concept.prerequisite_ids, progressMap);
+            const isMastered = progress?.status === 'mastered';
+            const currentDay = isMastered ? 5 : (progress?.current_day ?? 0);
+
+            return (
+              <ConceptCard
+                key={concept.id}
+                id={concept.id}
+                number={concept.number}
+                title={concept.title}
+                pillar={concept.pillar}
+                locked={locked}
+                currentDay={currentDay}
+                isMastered={isMastered}
+              />
+            );
+          })}
         </View>
 
       </ScrollView>
@@ -320,46 +362,22 @@ const styles = StyleSheet.create({
     paddingBottom: spacing[3],
   },
   title: {
-    fontFamily: fonts.display,
-    fontSize: 34,
-    color: colors.ink,
-    lineHeight: 40,
+    fontFamily: fonts.display, fontSize: 34,
+    color: colors.ink, lineHeight: 40,
   },
   sub: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.muted,
-    marginTop: 2,
+    fontFamily: fonts.body, fontSize: 13,
+    color: colors.muted, marginTop: 2,
   },
   summaryRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
+    flexDirection: 'row', gap: spacing[2],
     paddingHorizontal: spacing[5],
     marginBottom: spacing[4],
-  },
-  summaryPill: {
-    flex: 1,
-    borderRadius: radius.md,
-    paddingVertical: spacing[2] + 2,
-    alignItems: 'center',
-  },
-  summaryNum: {
-    fontFamily: fonts.display,
-    fontSize: 16,
-    lineHeight: 20,
-  },
-  summaryLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 8,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginTop: 1,
   },
   chipsScroll: { marginBottom: spacing[4] },
   chips: {
     paddingHorizontal: spacing[5],
-    gap: spacing[2],
-    flexDirection: 'row',
+    gap: spacing[2], flexDirection: 'row',
   },
   list: {
     paddingHorizontal: spacing[5],

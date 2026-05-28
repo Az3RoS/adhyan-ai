@@ -9,7 +9,7 @@
 |---|---|---|
 | 0 — Scaffold | ✅ DONE | All screens, design system, DB layer, i18n, git push |
 | 1 — Real Content | ✅ DONE | Supabase wired, 20 migrations run, Edge Function live, feed calls API |
-| 2 — AI Features | 🔲 NEXT | Bhashini TTS, Gemini scam checker, concept [id] full 5-day flow |
+| 2 — AI Features | 🔄 IN PROGRESS | 5-day concept flow ✅, SM-2 ✅, Learn screen ✅; Bhashini TTS + Gemini scam checker next |
 | 3 — Distribution | 🔲 BLOCKED on Phase 2 | EAS builds, Play Store, WhatsApp sharing |
 
 ---
@@ -101,14 +101,26 @@ supabase/
 
 ---
 
-## Phase 2 — First Tasks (when ready)
+## Phase 2 — Task Status
 
-1. Build full `concept/[id].tsx` 5-day flow — Day 1 hook → Day 2 reveal → Day 3 practice → Day 4 quiz → Day 5 review
-2. Wire SM-2: after Day 5 completion, write next_review_date to SQLite + sync to Supabase
-3. Bhashini TTS integration via Edge Function (concept audio)
-4. Gemini Flash scam checker Edge Function (takes screenshot/text, returns risk score)
-5. Seed explanation skins for Concepts 2–10 (EN + HI minimum)
-6. Add Community Stories + Messages in a Bottle to feed
+| Task | Status |
+|---|---|
+| concept/[id].tsx 5-day flow | ✅ DONE |
+| SM-2 after Day 5 completion | ✅ DONE |
+| syncSkinsDown() on startup | ✅ DONE |
+| Learn screen — real SQLite data + unlock chain | ✅ DONE |
+| Bhashini TTS Edge Function | 🔲 NEXT |
+| Gemini Flash scam checker Edge Function | 🔲 |
+| Seed explanation skins for Concepts 2–10 | 🔲 |
+| Community Stories + Messages in a Bottle in feed | 🔲 |
+
+## Phase 2 — Next Steps
+
+1. `supabase/functions/bhashini-tts/index.ts` — takes text + language → returns audio URL
+2. Wire TTS into `concept/[id].tsx` — play audio for day1_hook if available
+3. `supabase/functions/check-scam/index.ts` — takes text/URL → Gemini Flash → returns risk analysis
+4. Seed explanation skins for c02–c10 (EN + HI minimum)
+5. Add Community Stories section to home feed
 
 ---
 
