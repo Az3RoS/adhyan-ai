@@ -219,14 +219,15 @@ const PERSONA_LABELS: Record<PersonaKey, string> = {
   elderly: 'Senior Citizen', farmer: 'Farmer', student: 'Student',
   gig_worker: 'Gig Worker', clerk: 'Clerk / Govt. Employee',
   shop_owner: 'Shop Owner', homemaker: 'Homemaker',
-  domestic_worker: 'Domestic Worker',
+  domestic_worker: 'Domestic Worker', professional: 'Professional',
+  generic: 'General User',
 };
 
 export default function ProfileScreen() {
   const router = useRouter();
   const locale = useLocale();
   const { profile, setLocale } = useUser();
-  const t = (strings as Record<string, typeof strings.en>)[locale] ?? strings.en;
+  const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
 
   const personaLabel = profile?.persona
     ? PERSONA_LABELS[profile.persona as PersonaKey] ?? profile.persona

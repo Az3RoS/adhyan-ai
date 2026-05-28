@@ -246,7 +246,7 @@ const empty = StyleSheet.create({
 
 export default function CookbookScreen() {
   const locale = useLocale();
-  const t = (strings as Record<string, typeof strings.en>)[locale] ?? strings.en;
+  const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
 
   const [prompts, setPrompts] = useState(MOCK_PROMPTS);
   const [filter, setFilter] = useState<'all' | 'starred'>('all');

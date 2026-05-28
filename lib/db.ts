@@ -4,7 +4,7 @@
  * Supabase syncs on top; never blocks the UI.
  */
 
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from 'expo-sqlite/next';
 import type { PersonaKey } from '@/constants/design';
 import type { Locale } from '@/constants/i18n';
 

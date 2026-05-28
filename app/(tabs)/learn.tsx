@@ -240,7 +240,7 @@ const card = StyleSheet.create({
 export default function LearnScreen() {
   const locale = useLocale();
   const { profile } = useUser();
-  const t = (strings as Record<string, typeof strings.en>)[locale] ?? strings.en;
+  const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
 
   const [activePillar, setActivePillar] = useState<Pillar | null>(null);
 

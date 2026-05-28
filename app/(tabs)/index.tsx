@@ -83,7 +83,7 @@ const MOCK_FEED: DailyCard[] = [
 // ── Morning campfire card ──
 
 function CampfireCard({ locale }: { locale: string }) {
-  const t = (strings as Record<string, typeof strings.en>)[locale] ?? strings.en;
+  const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
   return (
     <TouchableOpacity style={campfire.card} activeOpacity={0.8} accessibilityRole="button">
       <View style={campfire.iconWrap}>
@@ -300,7 +300,7 @@ const feedCard = StyleSheet.create({
 export default function HomeScreen() {
   const locale  = useLocale();
   const { profile } = useUser();
-  const t = (strings as Record<string, typeof strings.en>)[locale] ?? strings.en;
+  const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
 
   const [activeIndex, setActiveIndex] = useState(0);
 

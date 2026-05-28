@@ -113,7 +113,7 @@ function QuizView({
       {day.choices?.map((choice, i) => {
         const isSelected = selected === i;
         const isCorrect  = i === day.correctIndex;
-        let bg = colors.paper;
+        let bg: string = colors.paper;
         if (isSelected && isCorrect)  bg = 'rgba(58,120,40,0.15)';
         if (isSelected && !isCorrect) bg = 'rgba(200,57,10,0.12)';
 
@@ -203,7 +203,7 @@ function ConceptArt({
 
       {/* Content */}
       <View style={art.content}>
-        <View style={[art.phaseBadge, { backgroundColor: `${phaseColor}30` }]}>
+        <View style={[art.phaseBadge, { backgroundColor: `${phaseColor}30` as string }]}>
           <Text style={[art.phaseText, { color: phaseColor }]}>{phaseLabel}</Text>
         </View>
         <Text style={art.conceptTitle}>{title}</Text>
