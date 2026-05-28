@@ -451,11 +451,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
   },
   pullQuote: {
-    fontFamily: fonts.displayMedium,
+    fontFamily: fonts.displayItalic,
     fontSize: 17,
     color: colors.ink,
     lineHeight: 26,
-    fontStyle: 'italic',
   },
   body: {
     fontFamily: fonts.body,

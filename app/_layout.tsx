@@ -2,16 +2,17 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  useFonts,
-  Eczar_400Regular,
-  Eczar_500Medium,
-  Eczar_600SemiBold,
-  Eczar_700Bold,
-  Eczar_800ExtraBold,
-} from '@expo-google-fonts/eczar';
+  TiroDevanagariSanskrit_400Regular,
+  TiroDevanagariSanskrit_400Regular_Italic,
+} from '@expo-google-fonts/tiro-devanagari-sanskrit';
+// NOTE: AnandaNepTouch2 for the app wordmark loads as a local asset.
+// Download AnandaNepTouch2.ttf → assets/fonts/AnandaNepTouch2.ttf
+// Needs commercial license before production launch.
+// Then uncomment: AnandaNepTouch2: require('../assets/fonts/AnandaNepTouch2.ttf')
 import {
   Hind_300Light,
   Hind_400Regular,
@@ -51,11 +52,9 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Eczar_400Regular,
-    Eczar_500Medium,
-    Eczar_600SemiBold,
-    Eczar_700Bold,
-    Eczar_800ExtraBold,
+    TiroDevanagariSanskrit_400Regular,
+    TiroDevanagariSanskrit_400Regular_Italic,
+    // AnandaNepTouch2: require('../assets/fonts/AnandaNepTouch2.ttf'),
     Hind_300Light,
     Hind_400Regular,
     Hind_500Medium,

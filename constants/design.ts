@@ -67,24 +67,40 @@ export type ColorKey = keyof typeof colors;
 
 // ─────────────────────────────────────────────
 // TYPOGRAPHY
-// Eczar  — display/headlines (designed to harmonise with Devanagari)
+// TiroDevanagariSanskrit — display/headlines
+//   Commissioned by Harvard UP for Murty Classical Library.
+//   Single weight (400) — size + spacing create hierarchy, not weight.
+//   "Modern yet ancient." Sanskrit editorial authority on mobile.
 // Hind   — body/UI (designed for Devanagari + Latin harmony)
+// AnandaNepTouch2 — wordmark ("Adhyan" title) ONLY
+//   Latin styled like Devanagari strokes. Local TTF asset.
+//   ⚠️ Personal-use license only. Buy commercial before launch.
+//   Falls back to TiroDevanagariSanskrit until TTF is bundled.
 // ─────────────────────────────────────────────
 
 export const fonts = {
-  display:  'Eczar_700Bold',
-  displayMedium: 'Eczar_600SemiBold',
-  displayRegular: 'Eczar_400Regular',
-  body:     'Hind_400Regular',
-  bodyMedium: 'Hind_500Medium',
-  bodySemiBold: 'Hind_600SemiBold',
-  bodyBold: 'Hind_700Bold',
-  hindi:    'NotoSansDevanagari_400Regular',
-  hindiSemiBold: 'NotoSansDevanagari_600SemiBold',
-  bengali:  'NotoSansBengali_400Regular',
-  bengaliSemiBold: 'NotoSansBengali_600SemiBold',
-  mono:     'DMMono_400Regular',
-  monoMedium: 'DMMono_500Medium',
+  // Display — Tiro Devanagari Sanskrit (single 400 weight, use size for hierarchy)
+  display:        'TiroDevanagariSanskrit_400Regular',
+  displayItalic:  'TiroDevanagariSanskrit_400Regular_Italic',
+  displayMedium:  'TiroDevanagariSanskrit_400Regular',  // same weight; size differs
+  displayRegular: 'TiroDevanagariSanskrit_400Regular',
+  // Wordmark — Ananda NepTouch 2 (bundle AnandaNepTouch2.ttf in assets/fonts/)
+  // Falls back to display until TTF is present
+  wordmark:       'AnandaNepTouch2',
+  wordmarkFallback: 'TiroDevanagariSanskrit_400Regular',
+  // Body / UI — Hind
+  body:           'Hind_400Regular',
+  bodyMedium:     'Hind_500Medium',
+  bodySemiBold:   'Hind_600SemiBold',
+  bodyBold:       'Hind_700Bold',
+  // Scripts
+  hindi:          'NotoSansDevanagari_400Regular',
+  hindiSemiBold:  'NotoSansDevanagari_600SemiBold',
+  bengali:        'NotoSansBengali_400Regular',
+  bengaliSemiBold:'NotoSansBengali_600SemiBold',
+  // Mono
+  mono:           'DMMono_400Regular',
+  monoMedium:     'DMMono_500Medium',
 } as const;
 
 export type FontKey = keyof typeof fonts;

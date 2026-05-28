@@ -152,11 +152,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   storyPull: {
-    fontFamily: fonts.displayMedium,
+    fontFamily: fonts.displayItalic,
     fontSize: 19,
     color: colors.ink,
     lineHeight: 28,
-    fontStyle: 'italic',
     marginBottom: spacing[3],
     paddingLeft: spacing[3],
     borderLeftWidth: 2.5,
