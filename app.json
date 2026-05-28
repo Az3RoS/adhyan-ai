@@ -19,8 +19,6 @@
       "versionCode": 1,
       "minSdkVersion": 26,
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
         "RECORD_AUDIO",
         "POST_NOTIFICATIONS"
       ]
@@ -28,19 +26,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#c8390a"
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Adhyan uses your district and state to show you local mandi prices, weather, and scam alerts. Your exact GPS location is never stored."
-        }
-      ]
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

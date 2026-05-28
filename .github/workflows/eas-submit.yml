@@ -1,0 +1,57 @@
+name: EAS Submit (Play Store Internal Track)
+
+# Triggered manually after a successful production build
+# Requires: EXPO_TOKEN, GOOGLE_SERVICE_ACCOUNT_JSON (base64-encoded)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'EAS Build ID to submit (from eas build list)'
+        required: true
+        type: string
+
+jobs:
+  submit:
+    name: Submit to Play Store Internal Track
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # Write the Google Play service account key from secret (base64-encoded JSON)
+      - name: Write Google service account key
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}" | base64 --decode \
+            > ./google-service-account.json
+
+      - name: Submit to Play Store (internal track)
+        run: |
+          eas submit \
+            --platform android \
+            --profile production \
+            --id ${{ inputs.build_id }} \
+            --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+
+      # Always remove the key file after use
+      - name: Remove service account key
+        if: always()
+        run: rm -f ./google-service-account.json

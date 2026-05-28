@@ -5,10 +5,45 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { getUserProfile, upsertUserProfile, runMigrations, updateStreak, type UserProfile } from './db';
-import { ensureSupabaseSession, syncConceptsDown, syncSkinsDown } from './sync';
+import { ensureSupabaseSession, syncConceptsDown, syncSkinsDown, registerPushToken } from './sync';
 import type { Locale } from '@/constants/i18n';
 import type { PersonaKey } from '@/constants/design';
+
+// Configure notification handler (must be called before any notification is received)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: true,
+  }),
+});
+
+// ── Push token registration ────────────────────────────────────────────────
+
+async function registerExpoToken(userId: string): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    const { status } = existing !== 'granted'
+      ? await Notifications.requestPermissionsAsync()
+      : { status: existing };
+
+    if (status !== 'granted') return;
+
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: '4283bbb7-3f28-4713-9131-da8461240071',
+    });
+
+    await registerPushToken(userId, tokenData.data);
+  } catch (e) {
+    console.warn('[UserContext] Push token registration failed:', e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface UserContextValue {
   profile: UserProfile | null;
@@ -51,6 +86,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           if (p) {
             syncSkinsDown(p.locale, p.persona).catch(console.warn);
           }
+          // Register push notification token (non-blocking, non-fatal)
+          registerExpoToken(userId).catch(console.warn);
         }
       })
       .catch(console.error)

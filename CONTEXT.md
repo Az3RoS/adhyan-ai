@@ -8,9 +8,10 @@
 | Phase | Status | Notes |
 |---|---|---|
 | 0 — Scaffold | ✅ DONE | All screens, design system, DB layer, i18n, git push |
-| 1 — Real Content | ✅ DONE | Supabase wired, 20 migrations run, Edge Function live, feed calls API |
+| 1 — Real Content | ✅ DONE | Supabase wired, 26 migrations, Edge Functions live, feed calls API |
 | 2 — AI Features | ✅ DONE | 5-day flow, SM-2, Bhashini TTS, Gemini scam checker, skins c01–c10, community stories |
-| 3 — Distribution | 🔲 NEXT | EAS builds, Play Store internal track, WhatsApp sharing deep-link |
+| 3 — Distribution | ✅ DONE | EAS build/submit workflows, push notifications, DPDPA GPS fix, streak reminder |
+| 4 — Polish | 🔲 NEXT | Onboarding flow polish, settings screen, accessibility audit, prod build |
 
 ---
 
@@ -33,15 +34,22 @@ lib/
   sm2.ts               — SM-2 spaced repetition
   supabase.ts          — Singleton Supabase client (EXPO_PUBLIC_ env vars)
   sync.ts              — ensureSupabaseSession, fetchDailyFeed, syncConceptsDown,
-                         syncProfileUp, syncProgressUp; DailyFeedCard type
-  UserContext.tsx      — locale, persona, streak, onboarding, supabase_user_id
+                         syncProfileUp, syncProgressUp, registerPushToken; DailyFeedCard type
+  UserContext.tsx      — locale, persona, streak, onboarding, supabase_user_id, push token reg
 
 supabase/
-  config.toml          — Project ref, anonymous auth enabled
-  migrations/          — 20 files: 001-014 schema, 015-020 seed data
+  config.toml          — Project ref, anonymous auth enabled, 4 edge functions registered
+  migrations/          — 26 files: 001-014 schema, 015-026 seed + push_token column
   functions/
     _shared/cors.ts
     assemble-daily-feed/index.ts — main feed Edge Function
+    bhashini-tts/index.ts        — Hindi/Bengali/English TTS via Bhashini ULCA
+    check-scam/index.ts          — Gemini Flash → Groq fallback scam checker
+    send-streak-reminder/index.ts — daily cron: streak nudge via Expo Push
+
+.github/workflows/
+  eas-build.yml    — CI build on push to master (preview APK)
+  eas-submit.yml   — Manual submit to Play Store internal track
 ```
 
 ---
@@ -56,7 +64,7 @@ supabase/
 | Service role | ONLY in Edge Function env secrets |
 | Anonymous auth | enabled |
 
-**To run migrations:** Supabase Dashboard → SQL Editor → paste each file in order 001→020.
+**To run migrations:** Supabase Dashboard → SQL Editor → paste each file in order 001→026.
 
 ---
 
@@ -91,36 +99,50 @@ supabase/
 
 ---
 
-## Blockers
+## Blockers — Arnab Action Items
 
-| Blocker | Owner | Needed for |
+| Action | Command / Where | Needed for |
 |---|---|---|
-| Run migrations 001–020 in Supabase SQL Editor | Arnab | Live data in app |
-| Deploy assemble-daily-feed Edge Function | Arnab (`supabase functions deploy assemble-daily-feed`) | Live feed |
-| Bhashini API key | Arnab | TTS audio in concept cards |
+| Run migrations 001–026 in order | Supabase Dashboard → SQL Editor | Live data, push token column |
+| Deploy all 4 Edge Functions | `supabase functions deploy assemble-daily-feed bhashini-tts check-scam send-streak-reminder` | All AI features |
+| Set Supabase secrets | Dashboard → Edge Functions → Secrets | TTS + Scam checker |
+| `BHASHINI_API_KEY` + `BHASHINI_USER_ID` | Supabase secret | Hindi/Bengali TTS |
+| `GEMINI_API_KEY` | Supabase secret | Scam checker primary |
+| `GROQ_API_KEY` | Supabase secret | Scam checker fallback |
+| Set GitHub Actions secrets | Repo → Settings → Secrets | CI builds + Play Store |
+| `EXPO_TOKEN` | GitHub secret | EAS build in CI |
+| `EXPO_PUBLIC_SUPABASE_URL` | GitHub secret | Build env |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | GitHub secret | Build env |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | GitHub secret (base64 encoded) | Play Store submit |
+| Create Play Store listing | play.google.com/console | First internal track upload |
+| Upload app assets | `assets/` folder | icon.png 1024×1024, splash.png, notification-icon.png |
+| Set up pg_cron for streak reminder | Supabase Dashboard → Database → Cron Jobs | Daily streak nudge |
+| pg_cron schedule | `0 1 * * *` → `supabase functions/send-streak-reminder` | 6:30 AM IST daily |
 
 ---
 
-## Phase 2 — Task Status
+## Phase 3 — Task Status
 
 | Task | Status |
 |---|---|
-| concept/[id].tsx 5-day flow | ✅ DONE |
-| SM-2 after Day 5 completion | ✅ DONE |
-| syncSkinsDown() on startup | ✅ DONE |
-| Learn screen — real SQLite data + unlock chain | ✅ DONE |
-| Bhashini TTS Edge Function | 🔲 NEXT |
-| Gemini Flash scam checker Edge Function | 🔲 |
-| Seed explanation skins for Concepts 2–10 | ✅ DONE (migrations 021–024) |
-| Community Stories + Messages in a Bottle in feed | ✅ DONE |
+| EAS build CI workflow (eas-build.yml) | ✅ DONE |
+| EAS submit workflow (eas-submit.yml) | ✅ DONE |
+| Remove GPS permissions (DPDPA fix) | ✅ DONE |
+| Expo Push token registration | ✅ DONE |
+| Migration 026: push_token column | ✅ DONE |
+| send-streak-reminder Edge Function | ✅ DONE |
+| WhatsApp share on concept completion | ✅ DONE (Phase 2) |
+| pg_cron setup | 🔲 Arnab (see Blockers) |
+| Play Store listing created | 🔲 Arnab |
+| App assets (icon, splash) uploaded | 🔲 Arnab |
 
-## Phase 2 — Next Steps
+## Phase 4 — Next Steps (Polish)
 
-1. `supabase/functions/bhashini-tts/index.ts` — takes text + language → returns audio URL
-2. Wire TTS into `concept/[id].tsx` — play audio for day1_hook if available
-3. `supabase/functions/check-scam/index.ts` — takes text/URL → Gemini Flash → returns risk analysis
-4. Seed explanation skins for c02–c10 (EN + HI minimum)
-5. Add Community Stories section to home feed
+1. Settings screen: locale/persona change post-onboarding, clear data option
+2. Onboarding flow polish — progress indicator, back navigation
+3. Profile screen: streak calendar, milestone badges
+4. Accessibility audit: font scale, contrast, tap targets
+5. First production EAS build + Play Store internal track submission
 
 ---
 

@@ -50,5 +50,8 @@ verify_jwt = true
 [functions.check-scam]
 verify_jwt = true
 
+[functions.send-streak-reminder]
+verify_jwt = false
+
 [analytics]
 enabled = false

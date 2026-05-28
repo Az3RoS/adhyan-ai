@@ -163,6 +163,23 @@ export async function syncConceptsDown(): Promise<void> {
   }
 }
 
+// ── Push token ───────────────────────────────────────────────────────────────
+
+/**
+ * Register the device's Expo push token with Supabase user_profiles.
+ * Called once on startup after auth. Silently no-ops on failure.
+ */
+export async function registerPushToken(userId: string, token: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('user_profiles')
+      .upsert({ id: userId, push_token: token }, { onConflict: 'id' });
+    if (error) console.warn('[sync] registerPushToken error:', error.message);
+  } catch (e) {
+    console.warn('[sync] registerPushToken exception:', e);
+  }
+}
+
 // ── TTS ─────────────────────────────────────────────────────────────────────
 
 export interface TTSResult {
