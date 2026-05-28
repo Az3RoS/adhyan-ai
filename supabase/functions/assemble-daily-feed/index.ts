@@ -17,7 +17,8 @@
  *   1. scam_alert      — if any active high/critical alert exists for the user's profile
  *   2. concept         — next concept due (SM-2 due date) or first unseen concept
  *   3. good_read       — this week's curated article if publish_date <= today
- *   4. prompt_tip      — one cookbook prompt matching persona
+ *   4. community_story — a featured story from a real user
+ *   5. prompt_tip      — one cookbook prompt matching persona
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -33,7 +34,7 @@ interface RequestPayload {
 }
 
 interface DailyFeedCard {
-  card_type: 'scam_alert' | 'concept' | 'good_read' | 'prompt_tip';
+  card_type: 'scam_alert' | 'concept' | 'good_read' | 'community_story' | 'prompt_tip';
   card_id: string;
   title: string;
   body: string;
@@ -252,7 +253,54 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // ── 4. Prompt Tip ───────────────────────────────────────────────────────────
+  // ── 4. Community Story ──────────────────────────────────────────────────────
+  const { data: story } = await supabase
+    .from('community_stories')
+    .select('id, story_text, display_name, state, story_type, relevant_concept_id')
+    .in('moderation_status', ['approved', 'featured'])
+    .eq('locale', locale)
+    .order('publish_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Fall back to any locale if no match for user's locale
+  const { data: storyFallback } = !story
+    ? await supabase
+        .from('community_stories')
+        .select('id, story_text, display_name, state, story_type, relevant_concept_id')
+        .in('moderation_status', ['approved', 'featured'])
+        .order('publish_date', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  const activeStory = story ?? storyFallback;
+
+  if (activeStory) {
+    const typeLabels: Record<string, string> = {
+      success: locale === 'hi' ? 'सफलता की कहानी' : 'Success Story',
+      warning: locale === 'hi' ? 'असली चेतावनी' : 'Real Warning',
+      tip:     locale === 'hi' ? 'उपयोगी सुझाव' : 'Tip',
+      question:locale === 'hi' ? 'सवाल' : 'Question',
+    };
+
+    cards.push({
+      card_type: 'community_story',
+      card_id: activeStory.id,
+      title: typeLabels[activeStory.story_type ?? 'success'] ?? 'Community Story',
+      body: `"${activeStory.story_text}"`,
+      cta_label: activeStory.relevant_concept_id
+        ? (locale === 'hi' ? 'संबंधित पाठ देखें' : 'See related concept')
+        : (locale === 'hi' ? 'और कहानियाँ' : 'More stories'),
+      cta_route: activeStory.relevant_concept_id
+        ? `/concept/${activeStory.relevant_concept_id}`
+        : '/(tabs)',
+      color_token: activeStory.story_type === 'warning' ? 'protect' : 'evaluate',
+      icon_emoji: activeStory.story_type === 'warning' ? '⚠️' : '💬',
+    });
+  }
+
+  // ── 5. Prompt Tip ───────────────────────────────────────────────────────────
   const { data: prompt } = await supabase
     .from('prompt_cookbook')
     .select('id, title_en, title_hi, prompt_template_en, prompt_template_hi')

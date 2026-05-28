@@ -48,10 +48,11 @@ function colorFromToken(token?: string): string {
 }
 
 const BADGE_LABELS: Record<DailyFeedCard['card_type'], string> = {
-  scam_alert:  'Scam Alert',
-  concept:     "Today's Concept",
-  good_read:   'Good Read',
-  prompt_tip:  'Prompt Tip',
+  scam_alert:      'Scam Alert',
+  concept:         "Today's Concept",
+  good_read:       'Good Read',
+  community_story: 'Real Story',
+  prompt_tip:      'Prompt Tip',
 };
 
 function toDisplayCard(c: DailyFeedCard): DisplayCard {
@@ -95,13 +96,24 @@ const MOCK_FEED: DisplayCard[] = [
   },
   {
     id: 'mock-3',
+    badge: 'Real Story',
+    headline: '"I nearly fell for it"',
+    body: 'A Nashik farmer got a WhatsApp message promising ₹50,000 in a lottery. Perfect grammar, real logo. He spotted all three signs. His neighbour did not.',
+    cta: 'See related concept',
+    ctaRoute: '/concept/c10',
+    source: 'Raju, Nashik · Maharashtra',
+    color: colors.evaluate,
+    accentGlyph: '💬',
+  },
+  {
+    id: 'mock-4',
     badge: 'Good Read',
     headline: 'How AI is changing rural India',
     body: 'From crop advisory bots to land record queries — a ground-level look at AI adoption in five states.',
     cta: 'Read more',
     ctaRoute: undefined,
     source: 'The Hindu · 5 min read',
-    color: colors.evaluate,
+    color: colors.understand,
     accentGlyph: '📖',
   },
 ];

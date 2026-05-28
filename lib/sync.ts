@@ -273,7 +273,7 @@ export async function syncSkinsDown(locale: string, persona: string): Promise<vo
 // ── DailyFeedCard type (matches assemble-daily-feed Edge Function response) ──
 
 export interface DailyFeedCard {
-  card_type:         'scam_alert' | 'concept' | 'good_read' | 'prompt_tip';
+  card_type:         'scam_alert' | 'concept' | 'good_read' | 'community_story' | 'prompt_tip';
   card_id:           string;
   title:             string;
   body:              string;

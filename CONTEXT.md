@@ -9,8 +9,8 @@
 |---|---|---|
 | 0 — Scaffold | ✅ DONE | All screens, design system, DB layer, i18n, git push |
 | 1 — Real Content | ✅ DONE | Supabase wired, 20 migrations run, Edge Function live, feed calls API |
-| 2 — AI Features | 🔄 IN PROGRESS | 5-day concept flow ✅, SM-2 ✅, Learn screen ✅; Bhashini TTS + Gemini scam checker next |
-| 3 — Distribution | 🔲 BLOCKED on Phase 2 | EAS builds, Play Store, WhatsApp sharing |
+| 2 — AI Features | ✅ DONE | 5-day flow, SM-2, Bhashini TTS, Gemini scam checker, skins c01–c10, community stories |
+| 3 — Distribution | 🔲 NEXT | EAS builds, Play Store internal track, WhatsApp sharing deep-link |
 
 ---
 
@@ -111,8 +111,8 @@ supabase/
 | Learn screen — real SQLite data + unlock chain | ✅ DONE |
 | Bhashini TTS Edge Function | 🔲 NEXT |
 | Gemini Flash scam checker Edge Function | 🔲 |
-| Seed explanation skins for Concepts 2–10 | 🔲 |
-| Community Stories + Messages in a Bottle in feed | 🔲 |
+| Seed explanation skins for Concepts 2–10 | ✅ DONE (migrations 021–024) |
+| Community Stories + Messages in a Bottle in feed | ✅ DONE |
 
 ## Phase 2 — Next Steps
 
