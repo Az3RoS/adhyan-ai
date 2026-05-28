@@ -307,6 +307,126 @@ export function upsertProgress(data: Partial<ConceptProgress> & { concept_id: st
 }
 
 // ─────────────────────────────────────────────
+// LOCAL CONCEPTS (synced from Supabase)
+// ─────────────────────────────────────────────
+
+export interface LocalConcept {
+  id: string;
+  version: string;
+  pillar: string;
+  concept_number: number;
+  canonical_title: string;
+  icon_emoji: string;
+  color_token: string;
+  prerequisite_ids: string[];
+  synced_at: number;
+}
+
+export function getLocalConcept(conceptId: string): LocalConcept | null {
+  const db = getDb();
+  const row = db.getFirstSync<Record<string, unknown>>(
+    'SELECT * FROM local_concepts WHERE id = ?',
+    [conceptId]
+  );
+  if (!row) return null;
+  return {
+    ...(row as unknown as LocalConcept),
+    prerequisite_ids: JSON.parse((row.prerequisite_ids as string) ?? '[]'),
+  };
+}
+
+export function getAllLocalConcepts(): LocalConcept[] {
+  const db = getDb();
+  const rows = db.getAllSync<Record<string, unknown>>(
+    'SELECT * FROM local_concepts ORDER BY concept_number ASC'
+  );
+  return rows.map(r => ({
+    ...(r as unknown as LocalConcept),
+    prerequisite_ids: JSON.parse((r.prerequisite_ids as string) ?? '[]'),
+  }));
+}
+
+// ─────────────────────────────────────────────
+// LOCAL SKINS (synced from Supabase)
+// ─────────────────────────────────────────────
+
+export interface LocalSkin {
+  skin_id: string;
+  concept_id: string;
+  locale: string;
+  persona: string;
+  day1_hook: string;
+  day2_reveal: string;
+  day3_practice: string;
+  day4_retrieval_q: string;
+  day4_acceptable_ans: string[];
+  day5_check_prompt: string;
+  one_liner: string;
+  completion_message: string;
+  audio_url?: string;
+  audio_path?: string;
+  font_size_class: 'sm' | 'md' | 'lg' | 'xl';
+  voice_speed: 'slow' | 'normal' | 'fast';
+  synced_at: number;
+}
+
+/**
+ * Get a skin for a concept with graceful fallback:
+ *   1. Exact match (conceptId + locale + persona)
+ *   2. Same locale, generic persona
+ *   3. English, generic persona
+ *   4. null → caller uses hardcoded mock
+ */
+export function getSkinForConcept(
+  conceptId: string,
+  locale: string,
+  persona: string,
+): LocalSkin | null {
+  const db = getDb();
+
+  const candidates: [string, string, string][] = [
+    [conceptId, locale, persona],
+    [conceptId, locale, 'generic'],
+    [conceptId, 'en', 'generic'],
+  ];
+
+  const sql = 'SELECT * FROM local_skins WHERE concept_id = ? AND locale = ? AND persona = ?';
+  for (const [cid, loc, per] of candidates) {
+    const row = db.getFirstSync<Record<string, unknown>>(sql, [cid, loc, per]);
+    if (row) {
+      return {
+        ...(row as unknown as LocalSkin),
+        day4_acceptable_ans: JSON.parse((row.day4_acceptable_ans as string) ?? '[]'),
+      };
+    }
+  }
+  return null;
+}
+
+export function upsertLocalSkin(skin: LocalSkin): void {
+  const db = getDb();
+  db.runSync(
+    `INSERT OR REPLACE INTO local_skins (
+      skin_id, concept_id, locale, persona,
+      day1_hook, day2_reveal, day3_practice,
+      day4_retrieval_q, day4_acceptable_ans,
+      day5_check_prompt, one_liner, completion_message,
+      audio_url, audio_path, font_size_class, voice_speed, synced_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      skin.skin_id, skin.concept_id, skin.locale, skin.persona,
+      skin.day1_hook, skin.day2_reveal, skin.day3_practice,
+      skin.day4_retrieval_q,
+      JSON.stringify(skin.day4_acceptable_ans),
+      skin.day5_check_prompt, skin.one_liner, skin.completion_message,
+      skin.audio_url ?? null, skin.audio_path ?? null,
+      skin.font_size_class, skin.voice_speed,
+      skin.synced_at,
+    ]
+  );
+}
+
+// ─────────────────────────────────────────────
 // PROMPT COOKBOOK
 // ─────────────────────────────────────────────
 

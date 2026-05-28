@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { getUserProfile, upsertUserProfile, runMigrations, updateStreak, type UserProfile } from './db';
-import { ensureSupabaseSession, syncConceptsDown } from './sync';
+import { ensureSupabaseSession, syncConceptsDown, syncSkinsDown } from './sync';
 import type { Locale } from '@/constants/i18n';
 import type { PersonaKey } from '@/constants/design';
 
@@ -45,8 +45,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           // Store supabase_user_id in SQLite so other callers can reference it
           upsertUserProfile({ supabase_user_id: userId });
           refreshProfile();
-          // Pull published concepts in background — don't await
+          // Pull published concepts + skins in background — don't await
           syncConceptsDown().catch(console.warn);
+          const p = getUserProfile();
+          if (p) {
+            syncSkinsDown(p.locale, p.persona).catch(console.warn);
+          }
         }
       })
       .catch(console.error)

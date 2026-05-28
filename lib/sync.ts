@@ -10,8 +10,8 @@
 import NetInfo from '@react-native-community/netinfo';
 import { supabase } from './supabase';
 import {
-  getDb, getUserProfile, upsertUserProfile,
-  type UserProfile, type ConceptProgress,
+  getDb, getUserProfile, upsertUserProfile, upsertLocalSkin,
+  type UserProfile, type ConceptProgress, type LocalSkin,
 } from './db';
 
 // ── Anonymous auth ──────────────────────────────────────────────────────────
@@ -160,6 +160,44 @@ export async function syncConceptsDown(): Promise<void> {
     });
   } catch (e) {
     console.warn('[sync] syncConceptsDown error:', e);
+  }
+}
+
+/**
+ * Pull explanation skins for the user's locale + persona from Supabase
+ * and write to local_skins SQLite. Called once per session if online.
+ */
+export async function syncSkinsDown(locale: string, persona: string): Promise<void> {
+  try {
+    const net = await NetInfo.fetch();
+    if (!net.isConnected) return;
+
+    const { data, error } = await supabase
+      .from('explanation_skins')
+      .select(`
+        skin_id, concept_id, locale, persona,
+        day1_hook, day2_reveal, day3_practice,
+        day4_retrieval_q, day4_acceptable_ans,
+        day5_check_prompt, one_liner, completion_message,
+        audio_url, font_size_class, voice_speed
+      `)
+      .eq('status', 'published')
+      .in('locale', [locale, 'en'])
+      .in('persona', [persona, 'generic']);
+
+    if (error || !data) return;
+
+    const now = Date.now();
+    for (const s of data) {
+      upsertLocalSkin({
+        ...(s as LocalSkin),
+        day4_acceptable_ans: s.day4_acceptable_ans ?? [],
+        audio_path: undefined,
+        synced_at: now,
+      });
+    }
+  } catch (e) {
+    console.warn('[sync] syncSkinsDown error:', e);
   }
 }
 
