@@ -6,6 +6,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { getUserProfile, upsertUserProfile, runMigrations, updateStreak, type UserProfile } from './db';
+import { ensureSupabaseSession, syncConceptsDown } from './sync';
 import type { Locale } from '@/constants/i18n';
 import type { PersonaKey } from '@/constants/design';
 
@@ -30,12 +31,23 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Run migrations, then load profile, then check streak
+    // 1. Run SQLite migrations, 2. load profile, 3. update streak,
+    // 4. get/create Supabase anonymous session, 5. pull content (background)
     runMigrations()
-      .then(() => {
+      .then(async () => {
         refreshProfile();
-        updateStreak(); // update streak on every app open
+        updateStreak();
         refreshProfile(); // re-read after streak update
+
+        // Auth + content sync (non-blocking — failures are safe to ignore)
+        const userId = await ensureSupabaseSession();
+        if (userId) {
+          // Store supabase_user_id in SQLite so other callers can reference it
+          upsertUserProfile({ supabase_user_id: userId });
+          refreshProfile();
+          // Pull published concepts in background — don't await
+          syncConceptsDown().catch(console.warn);
+        }
       })
       .catch(console.error)
       .finally(() => setIsReady(true));

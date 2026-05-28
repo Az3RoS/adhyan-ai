@@ -1,15 +1,17 @@
 /**
  * Home — Daily Feed
- * Swipeable cards: scam alerts, weather, mandi prices, concept micro-cards.
- * Offline: serves cached feed with "last updated" indicator.
+ * Swipeable cards: scam alerts, concepts, good reads, prompt tips.
+ * Offline: falls back to mock feed; cached feed served when network unavailable.
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Dimensions, SafeAreaView, ScrollView,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useLocale, useUser } from '@/lib/UserContext';
+import { fetchDailyFeed, type DailyFeedCard } from '@/lib/sync';
 import { strings } from '@/constants/i18n';
 import {
   colors, fonts, spacing, radius, shadows,
@@ -19,64 +21,88 @@ import {
 const SCREEN_W = Dimensions.get('window').width;
 const CARD_W   = SCREEN_W - spacing[5] * 2;
 
-// ── Types ──
+// ── Display card type (adapted from API for rendering) ──
 
-interface DailyCard {
-  id: string;
-  type: 'alert' | 'community' | 'lesson' | 'market' | 'weather' | 'tool' | 'tip';
-  badge: string;
-  headline: string;
-  body: string;
-  cta?: string;
-  source?: string;
-  color: string;
+interface DisplayCard {
+  id:           string;
+  badge:        string;
+  headline:     string;
+  body:         string;
+  cta?:         string;
+  ctaRoute?:    string;
+  source?:      string;
+  color:        string;
   accentGlyph?: string;
 }
 
-// ── Mock feed data (replaced by Supabase in Phase 2) ──
+// ── Map pillar/card_type token to hex color ──
 
-const MOCK_FEED: DailyCard[] = [
+function colorFromToken(token?: string): string {
+  switch (token) {
+    case 'protect':   return colors.protect;
+    case 'understand': return colors.understand;
+    case 'use':       return colors.use;
+    case 'evaluate':  return colors.evaluate;
+    default:          return colors.understand;
+  }
+}
+
+const BADGE_LABELS: Record<DailyFeedCard['card_type'], string> = {
+  scam_alert:  'Scam Alert',
+  concept:     "Today's Concept",
+  good_read:   'Good Read',
+  prompt_tip:  'Prompt Tip',
+};
+
+function toDisplayCard(c: DailyFeedCard): DisplayCard {
+  return {
+    id:          c.card_id,
+    badge:       BADGE_LABELS[c.card_type],
+    headline:    c.title,
+    body:        c.body,
+    cta:         c.cta_label,
+    ctaRoute:    c.cta_route,
+    source:      c.source_url,
+    color:       colorFromToken(c.color_token ?? c.pillar),
+    accentGlyph: c.icon_emoji,
+  };
+}
+
+// ── Mock feed (offline fallback) ──
+
+const MOCK_FEED: DisplayCard[] = [
   {
-    id: '1',
-    type: 'alert',
+    id: 'mock-1',
     badge: 'Scam Alert',
     headline: 'Voice Cloning Scam',
     body: 'A Pune woman nearly sent ₹15,000 after hearing a voice that sounded exactly like her son — made entirely by AI. Here are the three signs.',
-    cta: 'Check a message',
+    cta: 'Learn more',
+    ctaRoute: undefined,
     source: 'Cyber Dost · Ministry of Home Affairs',
     color: colors.protect,
-    accentGlyph: '!',
+    accentGlyph: '🛡️',
   },
   {
-    id: '2',
-    type: 'lesson',
+    id: 'mock-2',
     badge: "Today's Concept",
-    headline: 'AI is a Pattern Matcher',
-    body: 'It has read everything but lived nothing. Like a student who read every farming book but never held soil. Strong on facts, blind to your specific situation.',
-    cta: 'Continue Day 3',
+    headline: 'What AI Is',
+    body: 'AI is a very well-read student who has never lived. Strong on facts, blind to your specific situation.',
+    cta: 'Start learning',
+    ctaRoute: '/concept/c01',
     source: 'Concept 1 · Understand',
     color: colors.understand,
-    accentGlyph: '∞',
+    accentGlyph: '💡',
   },
   {
-    id: '3',
-    type: 'market',
-    badge: 'Mandi Prices',
-    headline: 'Tomato ₹28/kg',
-    body: 'Nashik APMC today. Prices down 12% from last week due to surplus arrivals. Consider holding for 3–4 days if storage allows.',
-    source: 'Agmarknet · Maharashtra',
-    color: colors.use,
-    accentGlyph: '₹',
-  },
-  {
-    id: '4',
-    type: 'community',
-    badge: 'Community Story',
-    headline: '"AI told me it was a scam"',
-    body: 'Priya, 23, Mumbai: "A fake job offer arrived. ₹30,000/month, no experience needed. I forwarded it to AI Saathi. Fraud confirmed in 10 seconds."',
-    source: 'Verified story · Mumbai',
+    id: 'mock-3',
+    badge: 'Good Read',
+    headline: 'How AI is changing rural India',
+    body: 'From crop advisory bots to land record queries — a ground-level look at AI adoption in five states.',
+    cta: 'Read more',
+    ctaRoute: undefined,
+    source: 'The Hindu · 5 min read',
     color: colors.evaluate,
-    accentGlyph: '"',
+    accentGlyph: '📖',
   },
 ];
 
@@ -85,7 +111,12 @@ const MOCK_FEED: DailyCard[] = [
 function CampfireCard({ locale }: { locale: string }) {
   const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
   return (
-    <TouchableOpacity style={campfire.card} activeOpacity={0.8} accessibilityRole="button">
+    <TouchableOpacity
+      style={campfire.card}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      onPress={() => router.push('/concept/c01')}
+    >
       <View style={campfire.iconWrap}>
         <Text style={campfire.iconText}>◎</Text>
       </View>
@@ -135,19 +166,21 @@ const campfire = StyleSheet.create({
     color: colors.ink,
     lineHeight: 19,
   },
-  chevron: {
-    fontSize: 22,
-    color: colors.use,
-    lineHeight: 24,
-  },
+  chevron: { fontSize: 22, color: colors.use, lineHeight: 24 },
 });
 
 // ── Main feed card ──
 
-function FeedCard({ card }: { card: DailyCard }) {
+function FeedCard({ card }: { card: DisplayCard }) {
+  const handleCta = () => {
+    if (!card.ctaRoute) return;
+    // External URL (good_read / scam source) — router won't handle http
+    if (card.ctaRoute.startsWith('http')) return; // TODO: Linking.openURL
+    router.push(card.ctaRoute as never);
+  };
+
   return (
     <View style={[feedCard.card, { width: CARD_W }]}>
-
       {/* Art area */}
       <View style={[feedCard.art, { backgroundColor: card.color }]}>
         <View style={feedCard.arcOuter} />
@@ -173,6 +206,8 @@ function FeedCard({ card }: { card: DailyCard }) {
               style={[feedCard.ctaBtn, { backgroundColor: card.color }]}
               activeOpacity={0.85}
               accessibilityRole="button"
+              onPress={handleCta}
+              accessibilityLabel={card.cta}
             >
               <Text style={feedCard.ctaText}>{card.cta} →</Text>
             </TouchableOpacity>
@@ -189,7 +224,7 @@ function FeedCard({ card }: { card: DailyCard }) {
         </View>
 
         {card.source && (
-          <Text style={feedCard.source}>{card.source}</Text>
+          <Text style={feedCard.source} numberOfLines={1}>{card.source}</Text>
         )}
       </View>
     </View>
@@ -206,12 +241,7 @@ const feedCard = StyleSheet.create({
     ...shadows.clay,
     marginRight: spacing[5],
   },
-  art: {
-    height: 160,
-    overflow: 'hidden',
-    padding: spacing[5],
-    justifyContent: 'flex-end',
-  },
+  art: { height: 160, overflow: 'hidden', padding: spacing[5], justifyContent: 'flex-end' },
   arcOuter: {
     position: 'absolute', top: -50, right: -50,
     width: 200, height: 200, borderRadius: 100,
@@ -250,12 +280,7 @@ const feedCard = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
-  artTitle: {
-    fontFamily: fonts.display,
-    fontSize: 30,
-    color: 'white',
-    lineHeight: 34,
-  },
+  artTitle: { fontFamily: fonts.display, fontSize: 30, color: 'white', lineHeight: 34 },
   body: { padding: spacing[4] },
   bodyText: {
     fontFamily: fonts.body,
@@ -275,11 +300,7 @@ const feedCard = StyleSheet.create({
     paddingHorizontal: spacing[4],
     borderRadius: radius.sm,
   },
-  ctaText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: 'white',
-  },
+  ctaText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: 'white' },
   waBtn: {
     width: 40, height: 40,
     borderRadius: radius.sm,
@@ -288,7 +309,30 @@ const feedCard = StyleSheet.create({
     justifyContent: 'center',
   },
   waIcon: { fontSize: 18, color: 'white', lineHeight: 22 },
-  source: {
+  source: { fontFamily: fonts.body, fontSize: 11, color: colors.muted },
+});
+
+// ── Offline indicator ──
+
+function OfflineBanner() {
+  return (
+    <View style={offline.bar}>
+      <Text style={offline.text}>Showing saved feed · No connection</Text>
+    </View>
+  );
+}
+
+const offline = StyleSheet.create({
+  bar: {
+    marginHorizontal: spacing[5],
+    marginBottom: spacing[3],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center',
+  },
+  text: {
     fontFamily: fonts.body,
     fontSize: 11,
     color: colors.muted,
@@ -298,16 +342,38 @@ const feedCard = StyleSheet.create({
 // ── Main screen ──
 
 export default function HomeScreen() {
-  const locale  = useLocale();
+  const locale      = useLocale();
   const { profile } = useUser();
-  const t = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
+  const t           = (strings as unknown as Record<string, typeof strings.en>)[locale] ?? strings.en;
 
+  const [feed, setFeed]         = useState<DisplayCard[]>(MOCK_FEED);
+  const [isOffline, setIsOffline] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const today = new Date().toLocaleDateString(
     locale === 'hi' ? 'hi-IN' : locale === 'bn' ? 'bn-BD' : 'en-IN',
     { weekday: 'long', day: 'numeric', month: 'long' }
   );
+
+  // Load live feed on mount, after profile is ready
+  useEffect(() => {
+    if (!profile) return;
+
+    fetchDailyFeed({
+      locale:  profile.locale ?? 'en',
+      persona: profile.persona ?? 'generic',
+      state:   profile.state,
+      district: profile.district,
+    }).then(cards => {
+      if (cards && cards.length > 0) {
+        setFeed(cards.map(toDisplayCard));
+        setIsOffline(false);
+      } else {
+        // null = offline or error — keep mock/cached feed
+        setIsOffline(true);
+      }
+    });
+  }, [profile?.locale, profile?.persona]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -329,15 +395,20 @@ export default function HomeScreen() {
           <Text style={styles.dateText}>{today}</Text>
         </View>
 
+        {/* Offline indicator */}
+        {isOffline && <OfflineBanner />}
+
         {/* Morning campfire review */}
         <View style={styles.section}>
-          <CampfireCard locale={locale} />
+          <View style={styles.sectionPad}>
+            <CampfireCard locale={locale} />
+          </View>
         </View>
 
         {/* Feed cards */}
         <View style={styles.section}>
           <FlatList
-            data={MOCK_FEED}
+            data={feed}
             keyExtractor={item => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -354,7 +425,7 @@ export default function HomeScreen() {
 
           {/* Pagination dots */}
           <View style={styles.pagination}>
-            {MOCK_FEED.map((_, i) => (
+            {feed.map((_, i) => (
               <View
                 key={i}
                 style={[styles.pageDot, i === activeIndex && styles.pageDotActive]}
@@ -371,7 +442,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: colors.bg },
   scroll: { flex: 1 },
-  header: { paddingHorizontal: spacing[5], paddingTop: spacing[4], paddingBottom: spacing[4] },
+  header: {
+    paddingHorizontal: spacing[5],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
+  },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -394,7 +469,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(184,122,16,0.2)',
   },
-  streakDot: { fontSize: 8, color: colors.use },
+  streakDot:  { fontSize: 8, color: colors.use },
   streakCount: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 12,
@@ -406,7 +481,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 34,
   },
-  section: { marginBottom: spacing[4] },
+  section:    { marginBottom: spacing[4] },
   sectionPad: { paddingHorizontal: spacing[5] },
   pagination: {
     flexDirection: 'row',

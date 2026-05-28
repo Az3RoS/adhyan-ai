@@ -1,0 +1,90 @@
+-- First 10 tools in the Prompt Cookbook tool directory
+-- All free to use; all verified to work with basic text prompts
+
+INSERT INTO tool_directory
+  (id, tool_name, tool_url, logo_url,
+   category, is_free, requires_account,
+   short_description_en, short_description_hi,
+   best_for_personas, supported_locales,
+   is_active)
+VALUES
+
+('t01', 'ChatGPT (Free)', 'https://chat.openai.com', NULL,
+ 'general', TRUE, TRUE,
+ 'Ask anything in plain English or Hindi. Good for letters, explanations, and summaries.',
+ 'सरल भाषा में किसी भी विषय पर सवाल पूछें। पत्र लिखने, समझाने और सारांश बनाने के लिए उपयोगी।',
+ ARRAY['student','professional','clerk','shop_owner','generic'],
+ ARRAY['en','hi'],
+ TRUE),
+
+('t02', 'Google Gemini', 'https://gemini.google.com', NULL,
+ 'general', TRUE, TRUE,
+ 'Works well in Hindi and Bengali. Can read images and documents.',
+ 'हिंदी और बंगाली में अच्छा काम करता है। तस्वीरें और दस्तावेज़ भी पढ़ सकता है।',
+ ARRAY['farmer','homemaker','elderly','domestic_worker','generic'],
+ ARRAY['en','hi','bn'],
+ TRUE),
+
+('t03', 'Microsoft Copilot', 'https://copilot.microsoft.com', NULL,
+ 'general', TRUE, FALSE,
+ 'No account needed. Good for quick questions and web-connected answers.',
+ 'खाता ज़रूरी नहीं। जल्दी जवाब और इंटरनेट से जुड़ी जानकारी के लिए अच्छा।',
+ ARRAY['gig_worker','clerk','shop_owner','generic'],
+ ARRAY['en','hi'],
+ TRUE),
+
+('t04', 'Perplexity AI', 'https://www.perplexity.ai', NULL,
+ 'search', TRUE, FALSE,
+ 'Answers with sources. Good when you need to verify information with links.',
+ 'जवाब के साथ स्रोत भी देता है। जानकारी जाँचने के लिए उपयोगी।',
+ ARRAY['student','professional','clerk'],
+ ARRAY['en'],
+ TRUE),
+
+('t05', 'Claude (Anthropic)', 'https://claude.ai', NULL,
+ 'general', TRUE, TRUE,
+ 'Strong at long documents, careful explanations, and sensitive topics.',
+ 'लंबे दस्तावेज़ों, सावधान स्पष्टीकरण और संवेदनशील विषयों में अच्छा।',
+ ARRAY['professional','student','clerk'],
+ ARRAY['en','hi'],
+ TRUE),
+
+('t06', 'Krutrim', 'https://krutrim.ai', NULL,
+ 'general', TRUE, TRUE,
+ 'Built in India, works in 10+ Indian languages. Good for local context.',
+ 'भारत में बना, 10+ भारतीय भाषाओं में काम करता है। स्थानीय संदर्भ के लिए अच्छा।',
+ ARRAY['farmer','homemaker','elderly','domestic_worker','generic'],
+ ARRAY['en','hi','bn'],
+ TRUE),
+
+('t07', 'Google Translate', 'https://translate.google.com', NULL,
+ 'translation', TRUE, FALSE,
+ 'Translate text, documents, or even a photo of a sign into your language.',
+ 'लेख, दस्तावेज़ या किसी साइनबोर्ड की तस्वीर को अपनी भाषा में अनुवाद करें।',
+ ARRAY['farmer','homemaker','elderly','domestic_worker','generic'],
+ ARRAY['en','hi','bn'],
+ TRUE),
+
+('t08', 'Canva AI (Magic Write)', 'https://www.canva.com', NULL,
+ 'creative', TRUE, TRUE,
+ 'Design posters and banners using AI text prompts. Free tier available.',
+ 'AI की मदद से पोस्टर और बैनर बनाएँ। मुफ्त में उपलब्ध।',
+ ARRAY['shop_owner','student','professional'],
+ ARRAY['en'],
+ TRUE),
+
+('t09', 'Whisper (via HuggingFace)', 'https://huggingface.co/spaces/openai/whisper', NULL,
+ 'voice', TRUE, FALSE,
+ 'Convert voice recordings to text for free. Works with Hindi audio.',
+ 'आवाज़ की रिकॉर्डिंग को मुफ्त में लिखित में बदलें। हिंदी में भी काम करता है।',
+ ARRAY['farmer','elderly','domestic_worker','homemaker'],
+ ARRAY['en','hi'],
+ TRUE),
+
+('t10', 'AI Grammar Checker (LanguageTool)', 'https://languagetool.org', NULL,
+ 'writing', TRUE, FALSE,
+ 'Check grammar and spelling in English, Hindi, and Bengali writing.',
+ 'अंग्रेज़ी, हिंदी और बंगाली में व्याकरण और वर्तनी जाँचें।',
+ ARRAY['student','clerk','professional'],
+ ARRAY['en','hi','bn'],
+ TRUE);

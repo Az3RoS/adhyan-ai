@@ -1,0 +1,90 @@
+-- 10 launch concepts (numbers 1–10; 11–12 reserved for future)
+-- All start as 'published' — content team can set to 'draft' to hide any
+
+INSERT INTO concept_nodes
+  (id, concept_number, status, pillar, safety_critical,
+   canonical_title, canonical_one_liner, canonical_explanation,
+   learning_outcome, estimated_minutes,
+   prerequisite_ids, unlocks_ids,
+   icon_emoji, color_token, sr_initial_interval)
+VALUES
+
+('c01', 1, 'published', 'understand', FALSE,
+ 'What AI Is',
+ 'AI is a very well-read student who has never lived.',
+ 'AI systems learn by finding patterns in enormous amounts of text written by humans. They can answer questions, write letters, and explain things. But they have no lived experience, no local knowledge, and no stake in your outcome.',
+ 'Understand what AI is and is not — so you know when to trust it.',
+ 5, '{}', ARRAY['c02','c07'],
+ '💡', 'understand', 3),
+
+('c02', 2, 'published', 'understand', FALSE,
+ 'AI Makes Mistakes',
+ 'AI can be confidently wrong — it sounds certain even when it isn''t.',
+ 'AI generates text that sounds fluent and confident. It cannot tell the difference between what it knows and what it is guessing. It will give a wrong answer in the same calm, polite tone as a correct one.',
+ 'Recognise that AI output must always be verified before acting on it.',
+ 5, ARRAY['c01'], ARRAY['c04','c09'],
+ '⚠️', 'evaluate', 3),
+
+('c03', 3, 'published', 'understand', FALSE,
+ 'Pattern Matching',
+ 'AI matches patterns — it does not think.',
+ 'When you ask AI a question, it finds the most statistically likely continuation of your words based on everything it has read. It has no understanding of meaning, context, or consequences.',
+ 'Understand why AI gives plausible-sounding but sometimes wrong answers.',
+ 5, ARRAY['c01'], ARRAY['c02'],
+ '🔄', 'understand', 3),
+
+('c04', 4, 'published', 'evaluate', FALSE,
+ 'Checking AI Output',
+ 'One question that changes everything: "How do I verify this?"',
+ 'Every AI answer deserves a verification step. For important decisions — health, money, legal matters — always cross-check AI output with a trusted human source, official website, or government helpline.',
+ 'Build the habit of verifying AI output before acting on it.',
+ 5, ARRAY['c02'], ARRAY['c09'],
+ '🔍', 'evaluate', 3),
+
+('c05', 5, 'published', 'protect', TRUE,
+ 'Voice and Image Fakes',
+ 'If a voice or photo surprised you — pause before you act.',
+ 'AI can now clone a voice from 10 seconds of audio, and generate photos that never happened. Scammers use these to impersonate family members or officials. The three signs: sudden urgency, a request for money or OTP, and contact through an unfamiliar number.',
+ 'Identify the three signs of an AI-generated voice or image scam.',
+ 5, ARRAY['c01'], ARRAY['c06','c10'],
+ '🎭', 'protect', 2),
+
+('c06', 6, 'published', 'protect', TRUE,
+ 'Job Scam Signs',
+ 'Any job that pays too much for too little is a trap.',
+ 'AI-generated fake job offers are now realistic, personalised, and sent at scale. Red flags: salary too high, no interview required, asks for registration fees or bank details, uses WhatsApp only.',
+ 'Identify five red flags of an AI-generated fake job offer.',
+ 5, ARRAY['c05'], ARRAY['c10'],
+ '💼', 'protect', 2),
+
+('c07', 7, 'published', 'use', FALSE,
+ 'Asking AI Better',
+ 'The quality of your question decides the quality of the answer.',
+ 'Vague questions get vague answers. The more context you give — your situation, your location, what you already tried — the more useful the response. Think of AI as a helper who knows nothing about you unless you tell them.',
+ 'Write a question to AI that includes context, specifics, and what you need the answer for.',
+ 5, ARRAY['c01'], ARRAY['c08'],
+ '✍️', 'use', 3),
+
+('c08', 8, 'published', 'use', FALSE,
+ 'AI for Your Daily Work',
+ 'AI can draft, translate, explain, and summarise — in your language.',
+ 'Practical uses: writing a complaint letter, translating a document, summarising a long notice, checking eligibility for a government scheme, calculating loan interest, or drafting a WhatsApp message for customers.',
+ 'Use AI to complete one real task from your own life.',
+ 5, ARRAY['c07'], ARRAY['c09'],
+ '🛠️', 'use', 3),
+
+('c09', 9, 'published', 'evaluate', FALSE,
+ 'When Not to Trust AI',
+ 'Medical, legal, and financial decisions need a human expert.',
+ 'AI is a good starting point for general information. It should not replace a doctor, a lawyer, or a financial advisor for specific decisions about your body, your money, or your rights. Always end with: "Let me confirm this with a person."',
+ 'Know the three domains where AI alone is never enough.',
+ 5, ARRAY['c04','c08'], ARRAY['c10'],
+ '🚦', 'evaluate', 3),
+
+('c10', 10, 'published', 'protect', TRUE,
+ 'Scam Literacy',
+ 'Fear plus urgency is the scammer''s formula — slow down.',
+ 'Every scam, AI-powered or not, uses the same two levers: make the target afraid, then demand instant action before they can think. The counter is one rule: when there is fear and urgency, stop everything and call someone you trust.',
+ 'Apply the one rule that stops any scam: pause and call a trusted person.',
+ 5, ARRAY['c05','c06','c09'], '{}',
+ '🛡️', 'protect', 2);

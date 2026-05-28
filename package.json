@@ -17,6 +17,7 @@
     "@expo-google-fonts/noto-sans-bengali": "^0.2.2",
     "@expo-google-fonts/noto-sans-devanagari": "^0.2.2",
     "@expo-google-fonts/tiro-devanagari-sanskrit": "^0.3.0",
+    "@react-native-community/netinfo": "^12.0.1",
     "@supabase/supabase-js": "^2.44.0",
     "@tanstack/react-query": "^5.40.0",
     "expo": "~51.0.0",
