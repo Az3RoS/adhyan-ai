@@ -163,6 +163,75 @@ export async function syncConceptsDown(): Promise<void> {
   }
 }
 
+// ── TTS ─────────────────────────────────────────────────────────────────────
+
+export interface TTSResult {
+  audio_base64: string;
+  mime_type: string;
+  duration_hint_s: number;
+}
+
+/**
+ * Convert text to speech via bhashini-tts Edge Function.
+ * Returns null on network failure or Bhashini unavailability.
+ */
+export async function fetchTTS(params: {
+  text: string;
+  source_lang: string;
+  voice_speed?: string;
+  concept_id?: string;
+}): Promise<TTSResult | null> {
+  try {
+    const net = await NetInfo.fetch();
+    if (!net.isConnected) return null;
+
+    const { data, error } = await supabase.functions.invoke('bhashini-tts', {
+      body: params,
+    });
+
+    if (error) { console.warn('[sync] fetchTTS error:', error.message); return null; }
+    return data as TTSResult;
+  } catch (e) {
+    console.warn('[sync] fetchTTS exception:', e);
+    return null;
+  }
+}
+
+// ── Scam check ───────────────────────────────────────────────────────────────
+
+export interface ScamCheckResult {
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  verdict: string;
+  signs: string[];
+  safe_action: string;
+  confidence: number;
+}
+
+/**
+ * Check a suspicious message via check-scam Edge Function (Gemini → Groq fallback).
+ * Returns null on network failure.
+ */
+export async function checkScam(params: {
+  message: string;
+  locale: string;
+  context?: string;
+}): Promise<ScamCheckResult | null> {
+  try {
+    const net = await NetInfo.fetch();
+    if (!net.isConnected) return null;
+
+    const { data, error } = await supabase.functions.invoke('check-scam', {
+      body: params,
+    });
+
+    if (error) { console.warn('[sync] checkScam error:', error.message); return null; }
+    return data as ScamCheckResult;
+  } catch (e) {
+    console.warn('[sync] checkScam exception:', e);
+    return null;
+  }
+}
+
 /**
  * Pull explanation skins for the user's locale + persona from Supabase
  * and write to local_skins SQLite. Called once per session if online.

@@ -44,5 +44,11 @@ policy = "oneshot"
 [functions.assemble-daily-feed]
 verify_jwt = true
 
+[functions.bhashini-tts]
+verify_jwt = true
+
+[functions.check-scam]
+verify_jwt = true
+
 [analytics]
 enabled = false
