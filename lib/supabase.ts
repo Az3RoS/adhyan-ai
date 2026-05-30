@@ -11,8 +11,8 @@ const supabaseUrl  = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 if (!supabaseUrl || !supabaseAnon) {
-  throw new Error(
-    'Missing Supabase env vars. Copy .env.example → .env and fill in values.'
+  console.warn(
+    '[supabase] Missing env vars. Copy .env.example → .env and fill in values.'
   );
 }
 
