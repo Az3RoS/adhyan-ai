@@ -1,8 +1,9 @@
 /**
- * bhashini-tts
+ * tts (was bhashini-tts)
  *
- * Converts concept text to speech via the Bhashini AI4Bharat API.
- * Returns a base64-encoded audio string (wav/mp3) the client can play.
+ * Converts concept text to speech via Sarvam AI TTS API.
+ * Drop-in replacement for the Bhashini integration — same request/response
+ * contract, so no client-side changes are needed.
  *
  * Request body:
  *   text          — plain text to synthesise (max 500 chars)
@@ -14,39 +15,39 @@
  *   { audio_base64: string, mime_type: string, duration_hint_s: number }
  *
  * Failure modes:
- *   - Bhashini API unavailable → 503 with { error: 'tts_unavailable' }
- *   - Text too long            → 400 with { error: 'text_too_long' }
- *   - Auth missing             → 401
+ *   - Sarvam API unavailable → 503 with { error: 'tts_unavailable' }
+ *   - Text too long          → 400 with { error: 'text_too_long' }
+ *   - Auth missing           → 401
  *
- * Bhashini docs: https://bhashini.gov.in/ulca/model/api-integration
- * We use the ULCA compliant pipeline inference endpoint.
+ * Sarvam AI docs: https://docs.sarvam.ai/api-reference-docs/text-to-speech
+ * Secret required: SARVAM_API_KEY
  */
 
 import { corsHeaders, handleCors } from '../_shared/cors.ts';
 
-// ── Bhashini language + voice config ────────────────────────────────────────
+// ── Language + voice config ──────────────────────────────────────────────────
 
-const LANG_MAP: Record<string, string> = {
-  hi: 'hi',
-  bn: 'bn',
-  en: 'en',
+// Sarvam BCP-47 language codes
+const LANG_CODE: Record<string, string> = {
+  hi: 'hi-IN',
+  bn: 'bn-IN',
+  en: 'en-IN',
 };
 
-// Bhashini model IDs for TTS — update these when new models are available
-// Current: AI4Bharat IndicTTS (best quality for Indian languages)
-const TTS_MODEL_IDS: Record<string, string> = {
-  hi: '64392947daac500b55c543cd',  // IndicTTS Hindi female
-  bn: '645f0f4cef23b8d83dde21cb',  // IndicTTS Bengali female
-  en: '6453c67ce2f0db0f45782285',  // IndicTTS English-Indian female
+// Best natural-sounding female speakers per language
+const SPEAKER: Record<string, string> = {
+  hi: 'meera',    // warm Hindi female
+  bn: 'diya',     // Bengali female
+  en: 'maya',     // Indian-English female
 };
 
-const SPEED_MAP: Record<string, number> = {
-  slow: 0.8,
+const PACE: Record<string, number> = {
+  slow:   0.8,
   normal: 1.0,
-  fast: 1.2,
+  fast:   1.25,
 };
 
-// ── Request payload ──────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface TTSRequest {
   text: string;
@@ -55,7 +56,7 @@ interface TTSRequest {
   concept_id?: string;
 }
 
-// ── Main handler ─────────────────────────────────────────────────────────────
+// ── Handler ──────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   const corsResp = handleCors(req);
@@ -68,7 +69,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Auth — JWT required
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -96,7 +96,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Enforce character limit (Bhashini has a ~500 char limit per request)
   if (text.length > 500) {
     return new Response(JSON.stringify({ error: 'text_too_long', max: 500 }), {
       status: 400,
@@ -104,59 +103,43 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const lang      = LANG_MAP[source_lang] ?? 'hi';
-  const modelId   = TTS_MODEL_IDS[lang]   ?? TTS_MODEL_IDS['hi'];
-  const speedRate = SPEED_MAP[voice_speed] ?? 1.0;
-
-  // ── Bhashini ULCA pipeline request ──────────────────────────────────────────
-
-  const bhashiniApiKey = Deno.env.get('BHASHINI_API_KEY');
-  const bhashiniUserId = Deno.env.get('BHASHINI_USER_ID');
-
-  if (!bhashiniApiKey || !bhashiniUserId) {
-    console.error('[bhashini-tts] Missing BHASHINI_API_KEY or BHASHINI_USER_ID env vars');
+  const sarvamKey = Deno.env.get('SARVAM_API_KEY');
+  if (!sarvamKey) {
+    console.error('[tts] Missing SARVAM_API_KEY env var');
     return new Response(JSON.stringify({ error: 'tts_unavailable' }), {
       status: 503,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  try {
-    const pipelineReq = {
-      pipelineTasks: [
-        {
-          taskType: 'tts',
-          config: {
-            language: { sourceLanguage: lang },
-            serviceId: modelId,
-            gender: 'female',
-            samplingRate: 8000,
-          },
-        },
-      ],
-      inputData: {
-        input: [{ source: text }],
-        audio: [{ audioContent: '' }],
-      },
-    };
+  const lang    = LANG_CODE[source_lang] ?? 'hi-IN';
+  const speaker = SPEAKER[source_lang]   ?? 'meera';
+  const pace    = PACE[voice_speed]      ?? 1.0;
 
-    const resp = await fetch(
-      'https://dhruva-api.bhashini.gov.in/services/inference/pipeline',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': bhashiniApiKey,
-          'userID': bhashiniUserId,
-          'ulcaApiKey': bhashiniApiKey,
-        },
-        body: JSON.stringify(pipelineReq),
-      }
-    );
+  try {
+    const resp = await fetch('https://api.sarvam.ai/text-to-speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type':       'application/json',
+        'api-subscription-key': sarvamKey,
+      },
+      body: JSON.stringify({
+        inputs:                   [text],
+        target_language_code:     lang,
+        speaker,
+        model:                    'bulbul:v1',
+        pitch:                    0,
+        pace,
+        loudness:                 1.5,
+        speech_sample_rate:       8000,
+        enable_preprocessing:     true,
+        eng_interpolation_wt:     0,
+      }),
+    });
 
     if (!resp.ok) {
       const errText = await resp.text();
-      console.error('[bhashini-tts] API error:', resp.status, errText);
+      console.error('[tts] Sarvam API error:', resp.status, errText);
       return new Response(JSON.stringify({ error: 'tts_unavailable' }), {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -164,24 +147,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const result = await resp.json();
-    const audioContent: string =
-      result?.pipelineResponse?.[0]?.audio?.[0]?.audioContent ?? '';
+    const audioBase64: string = result?.audios?.[0] ?? '';
 
-    if (!audioContent) {
-      console.error('[bhashini-tts] Empty audioContent in response');
+    if (!audioBase64) {
+      console.error('[tts] Empty audio in Sarvam response');
       return new Response(JSON.stringify({ error: 'tts_unavailable' }), {
         status: 503,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Rough duration estimate: ~12 chars/second for normal speed Indian speech
-    const duration_hint_s = Math.ceil(text.length / (12 * speedRate));
+    // ~12 chars/second for normal Indian speech pace
+    const duration_hint_s = Math.ceil(text.length / (12 * pace));
 
     return new Response(
       JSON.stringify({
-        audio_base64: audioContent,
-        mime_type: 'audio/wav',
+        audio_base64: audioBase64,
+        mime_type:    'audio/wav',
         duration_hint_s,
       }),
       {
@@ -190,7 +172,7 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (err) {
-    console.error('[bhashini-tts] Fetch exception:', err);
+    console.error('[tts] Fetch exception:', err);
     return new Response(JSON.stringify({ error: 'tts_unavailable' }), {
       status: 503,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
